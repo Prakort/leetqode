@@ -20,7 +20,7 @@ A production-ready Django + React application for tracking LeetCode practice wit
 - **Django 4.2** - Web framework
 - **Django REST Framework** - API development
 - **Django Allauth** - Google OAuth2 authentication
-- **PostgreSQL/SQLite** - Database
+- **SQLite** - Database (default, no setup required)
 - **CORS Headers** - Cross-origin resource sharing
 
 ### Frontend
@@ -106,6 +106,7 @@ cd leetqode
    ```bash
    python manage.py migrate
    ```
+   *Note: This creates a SQLite database file automatically - no additional database setup required!*
 
 6. **Seed the database with 100 LeetCode problems:**
    ```bash
@@ -346,7 +347,7 @@ To run the complete application, you need both servers running:
 ### Backend Deployment
 
 1. Set `DEBUG=False` in production
-2. Use PostgreSQL for production database
+2. Use PostgreSQL for production database (optional - SQLite works for small deployments)
 3. Set up proper environment variables
 4. Use a production WSGI server like Gunicorn
 5. Set up static file serving with WhiteNoise or CDN
