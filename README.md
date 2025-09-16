@@ -1,6 +1,6 @@
 # LeetQode - LeetCode Practice Tracker
 
-A production-ready Django + React application for tracking LeetCode practice with confidence-based spaced repetition and company-specific problem filtering.
+Tracking LeetCode practice with confidence-based spaced repetition and company-specific problem filtering.
 
 ## Features
 
