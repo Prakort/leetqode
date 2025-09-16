@@ -71,3 +71,71 @@ class UserProblem(models.Model):
     def is_due_today(self):
         """Check if problem is due for review today."""
         return self.next_due.date() <= timezone.now().date()
+
+
+class ProblemList(models.Model):
+    """Metadata lists like Top100, Top200, Amazon, Meta."""
+    LIST_TYPE_CHOICES = [
+        ('top100', 'Top 100'),
+        ('top200', 'Top 200'),
+        ('company', 'Company Specific'),
+        ('topic', 'Topic Based'),
+        ('custom', 'Custom'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    list_type = models.CharField(max_length=20, choices=LIST_TYPE_CHOICES, default='custom')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+
+class ProblemListItem(models.Model):
+    """Links problems to metadata lists."""
+    problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='list_items')
+    list = models.ForeignKey(ProblemList, on_delete=models.CASCADE, related_name='items')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['problem', 'list']
+        ordering = ['problem__id']
+    
+    def __str__(self):
+        return f"{self.list.name} - {self.problem.title}"
+
+
+class UserList(models.Model):
+    """User-created lists for organizing problems."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_lists')
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.name}"
+
+
+class UserListItem(models.Model):
+    """Links problems to user-created lists."""
+    problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='user_list_items')
+    user_list = models.ForeignKey(UserList, on_delete=models.CASCADE, related_name='items')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['problem', 'user_list']
+        ordering = ['problem__id']
+    
+    def __str__(self):
+        return f"{self.user_list.name} - {self.problem.title}"

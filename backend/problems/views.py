@@ -2,8 +2,11 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication
 from django.db.models import Q, Avg
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from .models import Problem, UserProblem
 from .serializers import (
     ProblemSerializer, UserProblemSerializer, UserProblemUpdateSerializer,
@@ -11,10 +14,19 @@ from .serializers import (
 )
 
 
-class ProblemListView(generics.ListAPIView):
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """
+    SessionAuthentication that doesn't enforce CSRF checks.
+    """
+    def enforce_csrf(self, request):
+        return  # To not perform the csrf check previously happening
+
+
+class ProblemListAPIView(generics.ListAPIView):
     """List all problems with optional filtering."""
     serializer_class = ProblemSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CsrfExemptSessionAuthentication]
     
     def get_queryset(self):
         queryset = Problem.objects.all()
@@ -36,6 +48,7 @@ class UserProblemListView(generics.ListCreateAPIView):
     """List user's problems or create new user problem."""
     serializer_class = UserProblemSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CsrfExemptSessionAuthentication]
     
     def get_queryset(self):
         queryset = UserProblem.objects.filter(user=self.request.user)
@@ -70,6 +83,7 @@ class UserProblemUpdateView(generics.UpdateAPIView):
     """Update user problem confidence and progress."""
     serializer_class = UserProblemUpdateSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CsrfExemptSessionAuthentication]
     
     def get_queryset(self):
         return UserProblem.objects.filter(user=self.request.user)
@@ -122,3 +136,5 @@ def problem_stats(request):
     }
     
     return Response(stats)
+
+

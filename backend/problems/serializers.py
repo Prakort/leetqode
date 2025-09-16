@@ -27,6 +27,24 @@ class UserProblemSerializer(serializers.ModelSerializer):
             'id', 'frequency_days', 'last_attempted', 'next_due',
             'attempts_count', 'solved_count', 'created_at', 'updated_at'
         ]
+    
+    def create(self, validated_data):
+        """Create or get existing UserProblem."""
+        problem_id = validated_data.pop('problem_id')
+        user = validated_data.get('user')
+        
+        # Check if UserProblem already exists
+        user_problem, created = UserProblem.objects.get_or_create(
+            user=user,
+            problem_id=problem_id,
+            defaults=validated_data
+        )
+        
+        if not created:
+            # If it already exists, return the existing one
+            return user_problem
+        
+        return user_problem
 
 
 class UserProblemUpdateSerializer(serializers.Serializer):
@@ -67,3 +85,5 @@ class DashboardSerializer(serializers.ModelSerializer):
             'last_attempted', 'next_due', 'attempts_count', 'solved_count',
             'is_due_today'
         ]
+
+

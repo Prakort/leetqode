@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, Plus } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import useProblemStore from '../store/problemStore';
-import ProblemCard from '../components/ProblemCard';
+import ProblemListItem from '../components/ProblemListItem';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Problems = () => {
@@ -10,19 +10,25 @@ const Problems = () => {
     userProblems,
     isLoading,
     error,
+    searchTerm,
     filters,
     fetchProblems,
     fetchUserProblems,
     setFilters,
+    setSearchTerm,
+    clearFilters,
+    getFilteredProblems,
   } = useProblemStore();
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    fetchProblems();
+    // Only fetch if problems haven't been loaded yet
+    if (problems.length === 0) {
+      fetchProblems();
+    }
     fetchUserProblems();
-  }, [fetchProblems, fetchUserProblems]);
+  }, [fetchProblems, fetchUserProblems, problems.length]);
 
   // Create a map of user problems for quick lookup
   const userProblemMap = new Map();
@@ -30,20 +36,27 @@ const Problems = () => {
     userProblemMap.set(up.problem.id, up);
   });
 
-  // Filter problems based on search term and filters
-  const filteredProblems = problems.filter(problem => {
-    const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         problem.id.toString().includes(searchTerm);
-    
-    const matchesDifficulty = !filters.difficulty || problem.difficulty === filters.difficulty;
-    
-    const matchesTags = filters.tags.length === 0 || 
-                       filters.tags.some(tag => problem.tags.includes(tag));
-    
-    return matchesSearch && matchesDifficulty && matchesTags;
-  });
+  // Get filtered problems from store
+  const filteredProblems = getFilteredProblems();
 
-  const availableTags = [...new Set(problems.flatMap(p => p.tags))].sort();
+  const allTags = [...new Set(problems.flatMap(p => p.tags))].sort();
+  const companyTags = ['Amazon', 'Google', 'Microsoft', 'Meta', 'Apple', 'Netflix', 'Uber', 'Airbnb'];
+  const availableTags = allTags.filter(tag => !companyTags.includes(tag));
+  const availableCompanyTags = allTags.filter(tag => companyTags.includes(tag));
+
+  const getCompanyTagColor = (company) => {
+    const colors = {
+      'Amazon': 'bg-orange-100 text-orange-800 border-orange-200',
+      'Google': 'bg-blue-100 text-blue-800 border-blue-200',
+      'Microsoft': 'bg-green-100 text-green-800 border-green-200',
+      'Meta': 'bg-purple-100 text-purple-800 border-purple-200',
+      'Apple': 'bg-gray-100 text-gray-800 border-gray-200',
+      'Netflix': 'bg-red-100 text-red-800 border-red-200',
+      'Uber': 'bg-black text-white border-black',
+      'Airbnb': 'bg-pink-100 text-pink-800 border-pink-200',
+    };
+    return colors[company] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
 
   const handleFilterChange = (key, value) => {
     if (key === 'tags') {
@@ -56,18 +69,14 @@ const Problems = () => {
     }
   };
 
-  const clearFilters = () => {
-    setFilters({ difficulty: '', tags: [], confidence: '', dueToday: false });
-    setSearchTerm('');
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Problems</h1>
+        <h1 className="text-3xl font-bold text-gray-900">All Problems</h1>
         <p className="mt-2 text-gray-600">
-          Practice LeetCode problems with confidence tracking and spaced repetition.
+          Browse and practice all 100 LeetCode problems with confidence tracking and spaced repetition.
         </p>
       </div>
 
@@ -101,7 +110,7 @@ const Problems = () => {
         {/* Filter Panel */}
         {showFilters && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Difficulty Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -117,6 +126,28 @@ const Problems = () => {
                   <option value="Medium">Medium</option>
                   <option value="Hard">Hard</option>
                 </select>
+              </div>
+
+              {/* Company Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company
+                </label>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {availableCompanyTags.map(tag => (
+                    <label key={tag} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={filters.tags.includes(tag)}
+                        onChange={() => handleFilterChange('tags', tag)}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className={`text-sm px-2 py-1 rounded-full border ${getCompanyTagColor(tag)}`}>
+                        {tag}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Tags Filter */}
@@ -212,11 +243,11 @@ const Problems = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-3">
               {filteredProblems.map((problem) => {
                 const userProblem = userProblemMap.get(problem.id);
                 return (
-                  <ProblemCard
+                  <ProblemListItem
                     key={problem.id}
                     userProblem={userProblem}
                     problem={problem}

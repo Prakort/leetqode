@@ -14,6 +14,7 @@ const useProblemStore = create((set, get) => ({
     confidence: '',
     dueToday: false,
   },
+  searchTerm: '',
 
   // Actions
   setLoading: (isLoading) => set({ isLoading }),
@@ -23,20 +24,41 @@ const useProblemStore = create((set, get) => ({
   clearError: () => set({ error: null }),
 
   setFilters: (filters) => set({ filters: { ...get().filters, ...filters } }),
+  
+  setSearchTerm: (searchTerm) => set({ searchTerm }),
+  
+  clearFilters: () => set({ 
+    filters: {
+      difficulty: '',
+      tags: [],
+      confidence: '',
+      dueToday: false,
+    },
+    searchTerm: ''
+  }),
 
-  // Fetch all problems
+  // Get filtered problems
+  getFilteredProblems: () => {
+    const { problems, searchTerm, filters } = get();
+    
+    return problems.filter(problem => {
+      const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           problem.id.toString().includes(searchTerm);
+      
+      const matchesDifficulty = !filters.difficulty || problem.difficulty === filters.difficulty;
+      
+      const matchesTags = filters.tags.length === 0 || 
+                         filters.tags.some(tag => problem.tags.includes(tag));
+      
+      return matchesSearch && matchesDifficulty && matchesTags;
+    });
+  },
+
+  // Fetch all problems (without filters)
   fetchProblems: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { filters } = get();
-      const params = new URLSearchParams();
-      
-      if (filters.difficulty) params.append('difficulty', filters.difficulty);
-      if (filters.tags.length > 0) {
-        filters.tags.forEach(tag => params.append('tags', tag));
-      }
-      
-      const response = await axios.get(`/api/problems/?${params}`, {
+      const response = await axios.get('/api/problems/', {
         withCredentials: true,
       });
       
@@ -123,13 +145,13 @@ const useProblemStore = create((set, get) => ({
         withCredentials: true,
       });
       
-      // Refresh user problems
+      // Refresh user problems to get updated state
       await get().fetchUserProblems();
       set({ isLoading: false });
       return response.data;
     } catch (error) {
       set({ 
-        error: error.response?.data?.message || 'Failed to add problem',
+        error: error.response?.data?.message || error.response?.data?.detail || 'Failed to add problem',
         isLoading: false 
       });
       throw error;
@@ -180,6 +202,7 @@ const useProblemStore = create((set, get) => ({
   markStruggling: async (userProblemId) => {
     return get().updateUserProblem(userProblemId, -10, false);
   },
+
 }));
 
 export default useProblemStore;
